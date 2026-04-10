@@ -1,11 +1,19 @@
 # 🌍 TerraYield AI | Live Harvest Forecasting Dashboard
 
+[![Live Demo](https://img.shields.io/badge/DEMO-Live_Deployment-brightgreen?style=for-the-badge&logo=vercel)](YOUR_DEPLOYMENT_LINK_HERE)
+
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0.3-lightgrey.svg)
 ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.3.2-orange.svg)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg)
 
 **TerraYield AI** is a professional-grade Precision Agriculture dashboard. It leverages a Machine Learning pipeline to forecast crop yields based on historical environmental data, while integrating live geospatial and weather APIs for real-time monitoring.
+
+---
+
+## 🔗 Live Deployment
+> **Check out the live application here:** [**TerraYield AI Web Dashboard**](https://predicting-crop-yields.vercel.app/)  
+*(Hosted on Vercel/Render/PythonAnywhere)*
 
 ---
 
@@ -33,7 +41,7 @@
 * **🛰️ Satellite Telemetry:** Live tracking of the International Space Station (ISS) to demonstrate the data architecture of modern "Space-Ag" technology.
 * **🛡️ Outlier Protection:** Built-in "Planetary Sanity Checks" ensure that user inputs remain within realistic agricultural boundaries.
 
-## 🛠️ Installation
+## 🛠️ Installation & Local Setup
 
 1.  **Clone the Repo:**
     ```bash
