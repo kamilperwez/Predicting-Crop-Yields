@@ -20,15 +20,15 @@
 ## 📸 Project Gallery
 
 ### 1. Main Analytical Dashboard
-![Dashboard Main View](https://placehold.co/1200x600/161b22/2ea043?text=Main+Analytical+Dashboard+View)
+![Dashboard Main View](https://github.com/kamilperwez/Predicting-Crop-Yields/blob/main/static/main.png)
 *The primary interface featuring glassmorphism design, predictive inputs, and live weather telemetry.*
 
 ### 2. Predictive Insights & Comparisons
-![Chart View](https://placehold.co/600x400/161b22/2ea043?text=Comparative+Yield+Chart) ![Map View](https://placehold.co/600x400/161b22/2ea043?text=Geospatial+Analysis+Map)
-*Comparative bar charts visualizing model output and interactive Google Maps for regional context.*
+![Chart View](https://github.com/kamilperwez/Predicting-Crop-Yields/blob/main/static/chart.png)
+*Comparative bar charts visualizing model output.*
 
 ### 3. Space-to-Earth Monitoring
-![Satellite Widget](https://placehold.co/1200x300/161b22/0d6efd?text=Live+ISS+Satellite+Tracking+Widget)
+![Satellite Widget](https://github.com/kamilperwez/Predicting-Crop-Yields/blob/main/static/geo.png)
 *Real-time orbital tracking of the ISS to simulate satellite-based NDVI crop health monitoring.*
 
 ---
