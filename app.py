@@ -69,15 +69,16 @@ def get_predictions(area, selected_items, rain, pest, temp):
 # ==========================================
 @app.route('/')
 def index():
-    # 1. SET YOUR DEFAULT FORM VALUES HERE
+    # --- DEFAULT INDIA SHOWCASE ---
     default_area = "India"
-    default_items = ["Rice", "Wheat"] # Ensure these crops exist for India in your dataset
+    # Ensure these match crops actually available in India in your dataset
+    default_items = ["Rice, paddy", "Wheat"] 
     default_rain = 1050.0
     default_pest = 45000.0
     default_temp = 26.5
     
     try:
-        # Run model once to populate the initial chart
+        # Generate prediction immediately so the dashboard isn't empty
         results = get_predictions(default_area, default_items, default_rain, default_pest, default_temp)
         
         user_data = {
@@ -92,6 +93,10 @@ def index():
         results = []
         user_data = {}
 
+    # Pass {"Area": "India"} to form_data so ONLY the country dropdown is pre-selected, 
+    # but the numbers remain empty (showing placeholders)
+    initial_form_state = {"Area": default_area}
+
     return render_template('index.html', 
                            results=results, 
                            areas=AREAS, 
@@ -101,12 +106,12 @@ def index():
                            last_area=default_area, 
                            trend=FARMING_TRENDS.get(default_area, DEFAULT_TREND),
                            user_data=user_data,
-                           form_data=None) # Empty Form State
+                           form_data=initial_form_state)
 
 @app.route("/predict", methods=['POST'])
 def predict():
     try:
-        # Validation checks
+        # Validation
         required_fields = ['average_rain_fall_mm_per_year', 'pesticides_tonnes', 'avg_temp', 'Area']
         if any(not request.form.get(field) or request.form.get(field).strip() == "" for field in required_fields):
             return render_template('index.html', error="⚠️ Validation Error: All form fields are mandatory.", areas=AREAS, area_crop_map=AREA_CROP_MAP, capitals=CAPITALS, trends=FARMING_TRENDS, last_area="India", form_data=None)
@@ -121,14 +126,14 @@ def predict():
         temp = float(request.form['avg_temp'])
         area = request.form['Area']
 
-        # Outlier Prevention
+        # Integrity Checks
         if not (0 <= rain <= 15000) or not (0 <= pest <= 500000) or not (-20 <= temp <= 60):
-            return render_template('index.html', error="🛑 Data Integrity Error: Inputs fall outside of realistic planetary bounds.", areas=AREAS, area_crop_map=AREA_CROP_MAP, capitals=CAPITALS, trends=FARMING_TRENDS, last_area=area, form_data=None)
+            return render_template('index.html', error="🛑 Data Integrity Error: Inputs fall outside realistic bounds.", areas=AREAS, area_crop_map=AREA_CROP_MAP, capitals=CAPITALS, trends=FARMING_TRENDS, last_area=area, form_data=None)
 
         # Generate Predictions
         results = get_predictions(area, selected_items, rain, pest, temp)
         
-        # Save table UI data
+        # UI Data
         user_data = {
             "Target Region": area,
             "Crops Evaluated": ", ".join(selected_items),
@@ -137,7 +142,7 @@ def predict():
             "Avg Temp": f"{temp} °C"
         }
         
-        # Save Form Data to keep inputs filled
+        # Save Form Data to keep inputs filled after submission
         form_data = {
             "Area": area,
             "Item": selected_items,

@@ -44,7 +44,6 @@
         .spinner-border { width: 1.5rem; height: 1.5rem; }
         .sat-map { border-radius: 8px; filter: invert(90%) hue-rotate(180deg) brightness(0.7); height: 100%; min-height: 300px; width: 100%; border: 1px solid var(--accent); }
 
-        /* Responsive borders for Chart/Table layout */
         @media (min-width: 768px) {
             .border-end-md { border-right: 1px solid #dee2e6; }
             .pe-md-4 { padding-right: 1.5rem !important; }
@@ -110,9 +109,9 @@
                             <div class="col-md-6">
                                 <label class="form-label"><i class="bi bi-map"></i> 1. Target Country <span class="text-danger">*</span></label>
                                 <select class="form-select" name="Area" id="aSelect" onchange="syncUI()" required>
-                                    <option value="" disabled hidden {% if not form_data %}selected{% endif %}>Select Region...</option>
+                                    <option value="" disabled hidden {% if not form_data or not form_data.get('Area') %}selected{% endif %}>Select Region...</option>
                                     {% for area in areas %}
-                                    <option value="{{ area }}" {% if form_data and form_data.Area == area %}selected{% endif %}>{{ area }}</option>
+                                    <option value="{{ area }}" {% if form_data and form_data.get('Area') == area %}selected{% endif %}>{{ area }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -123,15 +122,15 @@
                             
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-cloud-rain"></i> Rainfall (mm/yr) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="average_rain_fall_mm_per_year" step="any" min="0" max="15000" placeholder="e.g. 1050" value="{{ form_data.average_rain_fall_mm_per_year if form_data else '' }}" required>
+                                <input type="number" class="form-control" name="average_rain_fall_mm_per_year" step="any" min="0" max="15000" placeholder="e.g. 1050" value="{{ form_data.get('average_rain_fall_mm_per_year', '') if form_data else '' }}" required>
                             </div>
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-bug"></i> Pesticides (Tonnes) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="pesticides_tonnes" step="any" min="0" max="500000" placeholder="e.g. 45000" value="{{ form_data.pesticides_tonnes if form_data else '' }}" required>
+                                <input type="number" class="form-control" name="pesticides_tonnes" step="any" min="0" max="500000" placeholder="e.g. 45000" value="{{ form_data.get('pesticides_tonnes', '') if form_data else '' }}" required>
                             </div>
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-thermometer-half"></i> Avg Temp (°C) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="avg_temp" step="any" min="-20" max="60" placeholder="e.g. 26.5" value="{{ form_data.avg_temp if form_data else '' }}" required>
+                                <input type="number" class="form-control" name="avg_temp" step="any" min="-20" max="60" placeholder="e.g. 26.5" value="{{ form_data.get('avg_temp', '') if form_data else '' }}" required>
                             </div>
                             <div class="col-12 mt-4">
                                 <button type="submit" class="btn btn-predict shadow-lg w-100">
@@ -247,8 +246,8 @@
         const trends = {{ trends | tojson }};
         const defaultTrend = "Integrating advanced satellite monitoring and regenerative soil techniques to boost yields.";
         
-        const preselectedItems = {{ form_data.Item | tojson if form_data else '[]' }};
-        const formSubmittedArea = "{{ form_data.Area if form_data else '' }}";
+        const preselectedItems = {{ form_data.get('Item', []) | tojson if form_data else '[]' }};
+        const formSubmittedArea = "{{ form_data.get('Area', '') if form_data else '' }}";
 
         const weatherCodes = {
             0: { desc: "Clear sky", icon: "☀️" }, 1: { desc: "Mainly clear", icon: "🌤️" },
@@ -304,7 +303,6 @@
                 document.getElementById('issLng').innerText = lng;
                 document.getElementById('issStatus').innerText = "Live Tracking";
                 
-                // Fixed Google Maps Link
                 document.getElementById('issMap').src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=3&ie=UTF8&iwloc=&output=embed`;
             } catch(e) {
                 console.error("Satellite Tracking Error:", e);
@@ -326,7 +324,7 @@
                     let opt = document.createElement('option');
                     opt.value = crop; 
                     opt.text = crop; 
-                    // Only preselect items if the region hasn't been changed by the user manually
+                    // Automatically re-highlight previously selected crops if the form was just submitted
                     if (preselectedItems.includes(crop) && formSubmittedArea === area) {
                         opt.selected = true;
                     }
@@ -339,7 +337,6 @@
             document.getElementById('tTitle').innerHTML = `<i class="bi bi-lightning-charge-fill"></i> ${area} Trend`;
             document.getElementById('tDesc').innerText = trends[area] || defaultTrend;
             
-            // Fixed Google Maps Link
             document.getElementById('mapFrame').src = `https://maps.google.com/maps?q=${encodeURIComponent(area)}&t=k&z=5&ie=UTF8&iwloc=&output=embed`;
 
             const demands = ["Very High", "High", "Stable", "Surging"];
@@ -356,11 +353,8 @@
 
         window.onload = function() {
             let area = document.getElementById('aSelect').value;
-            if (!area) {
-                // If form is empty on load, fetch weather for the default area without selecting the dropdown
-                fetchLiveWeatherData("{{ last_area }}");
-            } else {
-                syncUI();
+            if (area) {
+                syncUI(); // Trigger the API fetches immediately
             }
         };
 
