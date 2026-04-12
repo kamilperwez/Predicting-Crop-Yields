@@ -25,6 +25,16 @@
         .form-label { color: #8b949e; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
         .form-control, .form-select { background: rgba(1, 4, 9, 0.7); border: 1px solid var(--border); color: white; padding: 12px; }
         .form-control:focus, .form-select:focus { border-color: var(--accent); box-shadow: none; background: #0d1117; color: white; }
+        
+        /* --- VISIBLE PLACEHOLDERS & GREEN DROPDOWN ARROW --- */
+        .form-control::placeholder { color: #8b949e !important; opacity: 1; font-style: italic; }
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%232ea043' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+        }
+
         .btn-predict { background: var(--accent); border: none; font-weight: 700; padding: 15px; border-radius: 8px; color: white; transition: 0.3s; }
         .btn-predict:hover { background: #238636; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 160, 67, 0.4); }
         .weather-val { font-size: 2.8rem; font-weight: 900; color: var(--accent); margin: 0; line-height: 1; }
@@ -32,9 +42,14 @@
         .trend-card { background: rgba(46, 160, 67, 0.1); border-radius: 12px; padding: 20px; border: 1px solid var(--accent); color: #e6edf3; }
         .flag-icon { width: 40px; border-radius: 4px; border: 1px solid #fff; margin-bottom: 10px; }
         .spinner-border { width: 1.5rem; height: 1.5rem; }
-        
-        /* Satellite Map specific styles */
         .sat-map { border-radius: 8px; filter: invert(90%) hue-rotate(180deg) brightness(0.7); height: 100%; min-height: 300px; width: 100%; border: 1px solid var(--accent); }
+
+        /* Responsive borders for Chart/Table layout */
+        @media (min-width: 768px) {
+            .border-end-md { border-right: 1px solid #dee2e6; }
+            .pe-md-4 { padding-right: 1.5rem !important; }
+            .ps-md-4 { padding-left: 1.5rem !important; }
+        }
     </style>
 </head>
 <body>
@@ -95,9 +110,9 @@
                             <div class="col-md-6">
                                 <label class="form-label"><i class="bi bi-map"></i> 1. Target Country <span class="text-danger">*</span></label>
                                 <select class="form-select" name="Area" id="aSelect" onchange="syncUI()" required>
-                                    <option value="" disabled selected>Select Region...</option>
+                                    <option value="" disabled hidden {% if not form_data %}selected{% endif %}>Select Region...</option>
                                     {% for area in areas %}
-                                    <option value="{{ area }}" {% if last_area == area %}selected{% endif %}>{{ area }}</option>
+                                    <option value="{{ area }}" {% if form_data and form_data.Area == area %}selected{% endif %}>{{ area }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -108,15 +123,15 @@
                             
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-cloud-rain"></i> Rainfall (mm/yr) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="average_rain_fall_mm_per_year" step="any" min="0" max="15000" placeholder="Max: 15,000" required>
+                                <input type="number" class="form-control" name="average_rain_fall_mm_per_year" step="any" min="0" max="15000" placeholder="e.g. 1050" value="{{ form_data.average_rain_fall_mm_per_year if form_data else '' }}" required>
                             </div>
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-bug"></i> Pesticides (Tonnes) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="pesticides_tonnes" step="any" min="0" max="500000" placeholder="Max: 500,000" required>
+                                <input type="number" class="form-control" name="pesticides_tonnes" step="any" min="0" max="500000" placeholder="e.g. 45000" value="{{ form_data.pesticides_tonnes if form_data else '' }}" required>
                             </div>
                             <div class="col-md-4 mt-4">
                                 <label class="form-label"><i class="bi bi-thermometer-half"></i> Avg Temp (°C) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="avg_temp" step="any" min="-20" max="60" placeholder="-20 to 60" required>
+                                <input type="number" class="form-control" name="avg_temp" step="any" min="-20" max="60" placeholder="e.g. 26.5" value="{{ form_data.avg_temp if form_data else '' }}" required>
                             </div>
                             <div class="col-12 mt-4">
                                 <button type="submit" class="btn btn-predict shadow-lg w-100">
@@ -127,26 +142,50 @@
                     </form>
 
                     <div class="row mt-5 g-4">
-                        <div class="col-md-7">
-                            <div class="bg-white rounded-4 p-4 h-100 shadow-sm d-flex flex-column justify-content-center">
-                                {% if results %}
-                                    <h6 class="text-dark fw-bold text-center mb-4"><i class="bi bi-bar-chart-fill text-success"></i> Predicted Yield Comparison (hg/ha)</h6>
-                                    <canvas id="yChart"></canvas>
-                                {% else %}
-                                    <div class="text-center py-4">
-                                        <i class="bi bi-bar-chart text-muted" style="font-size: 3rem;"></i>
-                                        <h5 class="text-muted fw-bold mt-2">Awaiting Parameters</h5>
+                        <div class="col-lg-8">
+                            <div class="bg-white rounded-4 p-4 h-100 shadow-sm">
+                                <div class="row h-100 align-items-center g-4">
+                                    <div class="col-md-7 border-end-md pe-md-4">
+                                        {% if results %}
+                                            <h6 class="text-dark fw-bold text-center mb-4"><i class="bi bi-bar-chart-fill text-success"></i> Predicted Yield Comparison (hg/ha)</h6>
+                                            <canvas id="yChart"></canvas>
+                                        {% else %}
+                                            <div class="text-center py-4">
+                                                <i class="bi bi-bar-chart text-muted" style="font-size: 3rem;"></i>
+                                                <h5 class="text-muted fw-bold mt-2">Awaiting Parameters</h5>
+                                            </div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
+                                    <div class="col-md-5 ps-md-4">
+                                        {% if user_data %}
+                                            <h6 class="text-dark fw-bold mb-3 border-bottom pb-2"><i class="bi bi-list-columns-reverse text-success"></i> Simulation Parameters</h6>
+                                            <table class="table table-sm table-borderless mt-3 mb-0">
+                                                <tbody>
+                                                    {% for key, val in user_data.items() %}
+                                                    <tr>
+                                                        <td class="text-secondary small fw-bold py-2">{{ key }}</td>
+                                                        <td class="text-dark small text-end fw-semibold py-2">{{ val }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="text-center py-4 opacity-50">
+                                                <i class="bi bi-table text-muted" style="font-size: 2rem;"></i>
+                                                <p class="text-muted small fw-bold mt-2">No data submitted</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-5">
+                        <div class="col-lg-4">
                             <div class="trend-card mb-3 shadow-sm">
                                 <h6 class="text-success fw-bold text-uppercase mb-2" id="tTitle"><i class="bi bi-lightning-charge-fill"></i> Agritech Trend</h6>
                                 <p class="mb-0 small text-light" id="tDesc" style="line-height: 1.6;">{{ trend }}</p>
                             </div>
-                            <iframe id="mapFrame" class="map-frame shadow-sm" src="https://maps.google.com/maps?q=India&t=&z=5&ie=UTF8&iwloc=&output=embed" frameborder="0"></iframe>
+                            <iframe id="mapFrame" class="map-frame shadow-sm" src="https://maps.google.com/maps?q={{ last_area | urlencode }}&t=k&z=5&ie=UTF8&iwloc=&output=embed" frameborder="0"></iframe>
                         </div>
                     </div>
                 </div>
@@ -161,7 +200,6 @@
                     
                     <div class="row">
                         <div class="col-md-5">
-                            
                             <div class="p-3 mb-3 rounded shadow-sm" style="background: rgba(13, 110, 253, 0.15); border-left: 4px solid #0d6efd;">
                                 <h6 class="fw-bold text-white mb-2"><i class="bi bi-info-circle-fill text-primary me-2"></i>Spectral Imagery Explained</h6>
                                 <p class="small text-light mb-0" style="line-height: 1.6;">
@@ -208,6 +246,9 @@
         const cropMapping = {{ area_crop_map | tojson }};
         const trends = {{ trends | tojson }};
         const defaultTrend = "Integrating advanced satellite monitoring and regenerative soil techniques to boost yields.";
+        
+        const preselectedItems = {{ form_data.Item | tojson if form_data else '[]' }};
+        const formSubmittedArea = "{{ form_data.Area if form_data else '' }}";
 
         const weatherCodes = {
             0: { desc: "Clear sky", icon: "☀️" }, 1: { desc: "Mainly clear", icon: "🌤️" },
@@ -263,7 +304,7 @@
                 document.getElementById('issLng').innerText = lng;
                 document.getElementById('issStatus').innerText = "Live Tracking";
                 
-                // Using universally supported standard Google Maps embed URL
+                // Fixed Google Maps Link
                 document.getElementById('issMap').src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=3&ie=UTF8&iwloc=&output=embed`;
             } catch(e) {
                 console.error("Satellite Tracking Error:", e);
@@ -283,7 +324,13 @@
             if(cropMapping[area]) {
                 cropMapping[area].forEach(crop => {
                     let opt = document.createElement('option');
-                    opt.value = crop; opt.text = crop; iSel.add(opt);
+                    opt.value = crop; 
+                    opt.text = crop; 
+                    // Only preselect items if the region hasn't been changed by the user manually
+                    if (preselectedItems.includes(crop) && formSubmittedArea === area) {
+                        opt.selected = true;
+                    }
+                    iSel.add(opt);
                 });
             }
 
@@ -292,8 +339,8 @@
             document.getElementById('tTitle').innerHTML = `<i class="bi bi-lightning-charge-fill"></i> ${area} Trend`;
             document.getElementById('tDesc').innerText = trends[area] || defaultTrend;
             
-            // Standard universal map link for country
-            document.getElementById('mapFrame').src = `https://maps.google.com/maps?q=${encodeURIComponent(area)}&t=&z=5&ie=UTF8&iwloc=&output=embed`;
+            // Fixed Google Maps Link
+            document.getElementById('mapFrame').src = `https://maps.google.com/maps?q=${encodeURIComponent(area)}&t=k&z=5&ie=UTF8&iwloc=&output=embed`;
 
             const demands = ["Very High", "High", "Stable", "Surging"];
             document.getElementById('mktDemand').innerText = demands[Math.floor(Math.random() * demands.length)];
@@ -308,7 +355,13 @@
         });
 
         window.onload = function() {
-            if(document.getElementById('aSelect').value) syncUI();
+            let area = document.getElementById('aSelect').value;
+            if (!area) {
+                // If form is empty on load, fetch weather for the default area without selecting the dropdown
+                fetchLiveWeatherData("{{ last_area }}");
+            } else {
+                syncUI();
+            }
         };
 
         {% if results %}
