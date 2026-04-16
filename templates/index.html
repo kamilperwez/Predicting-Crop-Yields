@@ -67,7 +67,7 @@
         </div>
 
         <div class="row g-4">
-            <div class="col-lg-3">
+            <div class="col-md-4 col-lg-3">
                 <div class="sidebar text-center mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-uppercase small fw-bold text-secondary m-0"><i class="bi bi-broadcast"></i> Live API Data</h6>
@@ -83,7 +83,7 @@
                     <p id="wWind" class="small text-info mt-1"></p>
                 </div>
 
-                <div class="sidebar">
+                <div class="sidebar mb-4">
                     <h6 class="text-warning fw-bold small text-uppercase mb-3"><i class="bi bi-graph-up-arrow"></i> Market Demand Index</h6>
                     <p class="small text-light mb-3">Estimated export demand for selected region.</p>
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -94,9 +94,35 @@
                         <div id="mktProgress" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width: 50%;"></div>
                     </div>
                 </div>
+
+                <div class="sidebar text-center">
+                    <h6 class="text-warning fw-bold small text-uppercase mb-2">
+                        <i class="bi bi-controller"></i> Arcade: Pest Patrol
+                    </h6>
+                    <p class="small text-light mb-2" style="font-size: 0.75rem;">Whack pests (🐛). Don't hit bees (🐝)!</p>
+                    
+                    <div class="d-flex justify-content-between px-2 mb-2">
+                        <span class="small fw-bold text-success">Score: <span id="pScore">0</span></span>
+                        <span class="small fw-bold text-info">Time: <span id="pTime">30</span>s</span>
+                    </div>
+
+                    <div id="pestGrid" class="d-grid gap-2 mx-auto" style="grid-template-columns: repeat(3, 1fr); max-width: 220px; aspect-ratio: 1; background: #21262d; padding: 10px; border-radius: 12px; border: 1px solid #30363d;">
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                        <div class="hole bg-dark rounded d-flex align-items-center justify-content-center fs-1 shadow-sm" style="cursor: pointer; user-select: none;"></div>
+                    </div>
+
+                    <button id="startPestBtn" class="btn btn-sm btn-outline-warning mt-3 w-100 fw-bold">START PATROL</button>
+                </div>
             </div>
 
-            <div class="col-lg-9">
+            <div class="col-md-8 col-lg-9">
                 <div class="main-card mb-4">
                     {% if error %}
                     <div class="alert alert-danger py-3 fw-bold shadow-sm" style="background-color: #3b1116; border-color: #ff7b72; color: #ff7b72;">
@@ -372,6 +398,114 @@
             options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
         });
         {% endif %}
+
+        // ==========================================
+        // PEST PATROL (WHACK-A-MOLE) LOGIC
+        // ==========================================
+        const holes = document.querySelectorAll('.hole');
+        const scoreDisplay = document.getElementById('pScore');
+        const timeDisplay = document.getElementById('pTime');
+        const startPestBtn = document.getElementById('startPestBtn');
+
+        let pResult = 0;
+        let pCurrentTime = 30;
+        let pTimerId = null;
+        let pCountDownTimerId = null;
+        let pIsPlaying = false;
+
+        function randomHole() {
+            holes.forEach(hole => {
+                hole.innerHTML = '';
+                hole.classList.remove('pest', 'bee');
+            });
+
+            let randomPosition = holes[Math.floor(Math.random() * holes.length)];
+            
+            // 80% chance for a pest, 20% chance for a friendly bee
+            const isBee = Math.random() < 0.2;
+            if (isBee) {
+                randomPosition.innerHTML = '🐝';
+                randomPosition.classList.add('bee');
+            } else {
+                const pests = ['🐛', '🦗', '🐀'];
+                randomPosition.innerHTML = pests[Math.floor(Math.random() * pests.length)];
+                randomPosition.classList.add('pest');
+            }
+        }
+
+        // Handle clicks/taps on the grid
+        holes.forEach(hole => {
+            hole.addEventListener('mousedown', () => {
+                if (!pIsPlaying) return;
+                
+                if (hole.classList.contains('pest')) {
+                    pResult += 10;
+                    scoreDisplay.textContent = pResult;
+                    hole.innerHTML = '💥'; // Hit effect
+                    hole.classList.remove('pest');
+                } else if (hole.classList.contains('bee')) {
+                    pResult -= 15; // Penalty for hitting bees
+                    scoreDisplay.textContent = pResult;
+                    hole.innerHTML = '❌'; 
+                    hole.classList.remove('bee');
+                }
+            });
+            
+            // Support mobile touch properly
+            hole.addEventListener('touchstart', (e) => {
+                e.preventDefault(); 
+                if (!pIsPlaying) return;
+                
+                if (hole.classList.contains('pest')) {
+                    pResult += 10;
+                    scoreDisplay.textContent = pResult;
+                    hole.innerHTML = '💥'; 
+                    hole.classList.remove('pest');
+                } else if (hole.classList.contains('bee')) {
+                    pResult -= 15; 
+                    scoreDisplay.textContent = pResult;
+                    hole.innerHTML = '❌'; 
+                    hole.classList.remove('bee');
+                }
+            });
+        });
+
+        function movePest() {
+            let speed = Math.max(400, 1000 - (pResult * 2)); // Speeds up as you score
+            pTimerId = setInterval(randomHole, speed);
+        }
+
+        function countDown() {
+            pCurrentTime--;
+            timeDisplay.textContent = pCurrentTime;
+
+            if (pCurrentTime == 0) {
+                clearInterval(pCountDownTimerId);
+                clearInterval(pTimerId);
+                pIsPlaying = false;
+                holes.forEach(hole => hole.innerHTML = '');
+                startPestBtn.innerText = "PLAY AGAIN";
+                startPestBtn.disabled = false;
+                alert('GAME OVER! Your Final Harvest Score is: ' + pResult);
+            }
+        }
+
+        startPestBtn.addEventListener('click', () => {
+            if (pIsPlaying) return;
+            pResult = 0;
+            pCurrentTime = 30;
+            scoreDisplay.textContent = pResult;
+            timeDisplay.textContent = pCurrentTime;
+            pIsPlaying = true;
+            startPestBtn.disabled = true;
+            startPestBtn.innerText = "DEFENDING CROP...";
+            
+            clearInterval(pTimerId);
+            clearInterval(pCountDownTimerId);
+            
+            movePest();
+            pCountDownTimerId = setInterval(countDown, 1000);
+        });
     </script>
 </body>
 </html>
